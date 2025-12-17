@@ -168,7 +168,7 @@ const Questionnaire: React.FC = () => {
       {/* Botão Admin */}
       <button
         onClick={() => navigate('/admin')}
-        className="fixed bottom-4 right-4 bg-gray-200 hover:bg-gray-300 text-gray-600 p-2 rounded-full shadow-md transition-all opacity-50 hover:opacity-100"
+        className="fixed bottom-4 right-4 bg-gray-200 hover:bg-gray-300 text-gray-600 p-3 rounded-full shadow-md transition-all hover:bg-gray-100"
         title="Área Administrativa"
       >
         <LockKeyhole size={20} />
