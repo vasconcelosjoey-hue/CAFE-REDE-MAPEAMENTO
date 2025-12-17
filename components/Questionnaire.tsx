@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { InterestArea } from '../types';
-import { Send, User, Phone, MapPin, CheckCircle2, LockKeyhole } from 'lucide-react';
+import { Send, User, Phone, MapPin, LockKeyhole } from 'lucide-react';
 
 const Questionnaire: React.FC = () => {
   const navigate = useNavigate();
@@ -27,13 +27,11 @@ const Questionnaire: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Basic validation
     if (!formData.nomeGuerra || !formData.bateria || !formData.whatsapp || !formData.areaInteresse) {
       alert("Por favor, preencha todos os campos.");
       return;
     }
 
-    // Simple WhatsApp format validation (numbers only, min length)
     const phoneRegex = /^[0-9+\s()-]{10,}$/;
     if (!phoneRegex.test(formData.whatsapp)) {
       alert("Por favor, insira um número de WhatsApp válido.");
@@ -41,15 +39,33 @@ const Questionnaire: React.FC = () => {
     }
 
     setLoading(true);
+    console.log("Iniciando envio para o Firestore...");
+
     try {
+      // Verificação rápida se o DB está inicializado
+      if (!db) throw new Error("Banco de dados não inicializado. Verifique firebaseConfig.ts");
+
       await addDoc(collection(db, "respostas"), {
         ...formData,
         createdAt: serverTimestamp()
       });
+      
+      console.log("Envio com sucesso!");
       navigate('/resultado');
-    } catch (error) {
-      console.error("Error saving document: ", error);
-      alert("Erro ao enviar. Verifique sua conexão ou tente novamente.");
+    } catch (error: any) {
+      console.error("Erro detalhado ao salvar:", error);
+      
+      let errorMessage = "Erro ao enviar. Tente novamente.";
+      
+      if (error.code === 'permission-denied') {
+        errorMessage = "Erro de Permissão: O banco de dados bloqueou a gravação. Verifique as Regras de Segurança do Firestore.";
+      } else if (error.code === 'unavailable') {
+        errorMessage = "Erro de Conexão: Verifique sua internet ou se as chaves da API estão corretas.";
+      } else if (error.message && error.message.includes("API key")) {
+        errorMessage = "Configuração Inválida: Verifique se você colocou a API KEY no arquivo firebaseConfig.ts";
+      }
+
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }
