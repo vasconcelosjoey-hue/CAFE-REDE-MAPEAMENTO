@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signInAnonymously } from 'firebase/auth';
+import { signInAnonymously, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
-import { Lock, User } from 'lucide-react';
+import { Lock, User, AlertCircle } from 'lucide-react';
 
 const LoginAdmin: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -14,23 +14,39 @@ const LoginAdmin: React.FC = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
-    // Check specific hardcoded credentials
-    if (username === 'caferede' && password === 'redecafe') {
-      setLoading(true);
-      try {
-        // Use anonymous authentication to satisfy Firebase Auth requirement in Dashboard
-        // Ensure "Anonymous" provider is enabled in Firebase Console -> Authentication -> Sign-in method
+    setLoading(true);
+
+    try {
+      // 1. Tenta Login "Rápido" (caferede / redecafe)
+      if (username === 'caferede' && password === 'redecafe') {
         await signInAnonymously(auth);
         navigate('/admin/dashboard');
-      } catch (err: any) {
-        console.error(err);
-        setError('Erro de autenticação. Verifique se o login anônimo está ativado no Firebase.');
-      } finally {
-        setLoading(false);
+        return;
       }
-    } else {
-      setError('Credenciais inválidas.');
+
+      // 2. Tenta Login Real do Firebase (Email / Senha)
+      // Isso permite usar o usuário criado no console (vasconcelosjoey@gmail.com)
+      await signInWithEmailAndPassword(auth, username, password);
+      navigate('/admin/dashboard');
+
+    } catch (err: any) {
+      console.error("Erro Firebase:", err);
+      
+      const errorCode = err.code;
+      
+      if (errorCode === 'auth/invalid-email') {
+        setError('O e-mail digitado não é válido.');
+      } else if (errorCode === 'auth/user-not-found' || errorCode === 'auth/wrong-password' || errorCode === 'auth/invalid-credential') {
+        setError('E-mail ou senha incorretos.');
+      } else if (errorCode === 'auth/operation-not-allowed') {
+        setError('O método de login não está ativado no Firebase.');
+      } else if (errorCode === 'auth/too-many-requests') {
+        setError('Muitas tentativas falhas. Tente novamente mais tarde.');
+      } else {
+        setError('Erro ao entrar. Verifique suas credenciais.');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -43,14 +59,15 @@ const LoginAdmin: React.FC = () => {
         </div>
 
         {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 border border-red-200">
-            {error}
+          <div className="bg-red-50 text-red-600 p-4 rounded-lg text-sm mb-4 border border-red-200 flex gap-2 items-start">
+            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <span>{error}</span>
           </div>
         )}
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Login</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Login ou E-mail</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <User size={18} className="text-gray-400" />
@@ -61,7 +78,7 @@ const LoginAdmin: React.FC = () => {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
-                placeholder="Usuário"
+                placeholder="Ex: caferede ou seu@email.com"
               />
             </div>
           </div>
@@ -88,7 +105,7 @@ const LoginAdmin: React.FC = () => {
             disabled={loading}
             className="w-full bg-gray-900 text-white py-2.5 rounded-lg hover:bg-gray-800 transition-colors font-medium disabled:opacity-50"
           >
-            {loading ? 'Entrando...' : 'Entrar'}
+            {loading ? 'Verificando...' : 'Entrar'}
           </button>
         </form>
       </div>
