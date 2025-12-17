@@ -39,30 +39,26 @@ const Questionnaire: React.FC = () => {
     }
 
     setLoading(true);
-    console.log("Iniciando envio para o Firestore...");
 
     try {
-      // Verificação rápida se o DB está inicializado
-      if (!db) throw new Error("Banco de dados não inicializado. Verifique firebaseConfig.ts");
+      if (!db) throw new Error("Banco de dados não inicializado.");
 
       await addDoc(collection(db, "respostas"), {
         ...formData,
         createdAt: serverTimestamp()
       });
       
-      console.log("Envio com sucesso!");
-      navigate('/resultado');
+      // MUDANÇA AQUI: Redireciona para a tela de agradecimento
+      navigate('/obrigado');
     } catch (error: any) {
       console.error("Erro detalhado ao salvar:", error);
       
       let errorMessage = "Erro ao enviar. Tente novamente.";
       
       if (error.code === 'permission-denied') {
-        errorMessage = "Erro de Permissão: O banco de dados bloqueou a gravação. Verifique as Regras de Segurança do Firestore.";
+        errorMessage = "Erro de Permissão: O banco de dados bloqueou a gravação.";
       } else if (error.code === 'unavailable') {
-        errorMessage = "Erro de Conexão: Verifique sua internet ou se as chaves da API estão corretas.";
-      } else if (error.message && error.message.includes("API key")) {
-        errorMessage = "Configuração Inválida: Verifique se você colocou a API KEY no arquivo firebaseConfig.ts";
+        errorMessage = "Erro de Conexão: Verifique sua internet.";
       }
 
       alert(errorMessage);
