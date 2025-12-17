@@ -1,0 +1,5 @@
+{
+  "name": "Café Rede — Mapeamento de Oportunidades",
+  "description": "A real-time survey and dashboard application using React and Firebase to map user interests and display live statistics.",
+  "requestFramePermissions": []
+}
