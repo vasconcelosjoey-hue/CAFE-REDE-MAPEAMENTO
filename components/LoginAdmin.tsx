@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signInAnonymously, signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
 import { Lock, User, AlertCircle } from 'lucide-react';
 
 const LoginAdmin: React.FC = () => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,16 +17,13 @@ const LoginAdmin: React.FC = () => {
     setLoading(true);
 
     try {
-      // 1. Tenta Login "Rápido" (caferede / redecafe)
-      if (username === 'caferede' && password === 'redecafe') {
-        await signInAnonymously(auth);
-        navigate('/admin/dashboard');
-        return;
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Verificação de segurança adicional conforme instrução
+      if (cred.user.isAnonymous) {
+        throw new Error("Não autorizado: Usuários anônimos não podem acessar o admin.");
       }
 
-      // 2. Tenta Login Real do Firebase (Email / Senha)
-      // Isso permite usar o usuário criado no console (vasconcelosjoey@gmail.com)
-      await signInWithEmailAndPassword(auth, username, password);
       navigate('/admin/dashboard');
 
     } catch (err: any) {
@@ -38,12 +35,10 @@ const LoginAdmin: React.FC = () => {
         setError('O e-mail digitado não é válido.');
       } else if (errorCode === 'auth/user-not-found' || errorCode === 'auth/wrong-password' || errorCode === 'auth/invalid-credential') {
         setError('E-mail ou senha incorretos.');
-      } else if (errorCode === 'auth/operation-not-allowed') {
-        setError('O método de login não está ativado no Firebase.');
       } else if (errorCode === 'auth/too-many-requests') {
         setError('Muitas tentativas falhas. Tente novamente mais tarde.');
       } else {
-        setError('Erro ao entrar. Verifique suas credenciais.');
+        setError(err.message || 'Erro ao entrar. Verifique suas credenciais.');
       }
     } finally {
       setLoading(false);
@@ -67,18 +62,18 @@ const LoginAdmin: React.FC = () => {
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Login ou E-mail</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <User size={18} className="text-gray-400" />
               </div>
               <input
-                type="text"
+                type="email"
                 className="pl-10 block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-coffee-500 focus:border-coffee-500 outline-none"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
-                placeholder="Ex: caferede ou seu@email.com"
+                placeholder="seu@email.com"
               />
             </div>
           </div>

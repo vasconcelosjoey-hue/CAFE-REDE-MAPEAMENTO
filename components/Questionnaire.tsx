@@ -1,19 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../firebaseConfig';
+import { signInAnonymously } from 'firebase/auth';
+import { db, auth } from '../firebaseConfig';
 import { InterestArea } from '../types';
-import { Send, User, Phone, MapPin, LockKeyhole } from 'lucide-react';
+import { Send, User, Phone, MapPin, PieChart, AlertCircle } from 'lucide-react';
 
 const Questionnaire: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     nomeGuerra: '',
     bateria: '',
     whatsapp: '',
     areaInteresse: '' as InterestArea | ''
   });
+
+  // Autentica o usuário público como Anônimo ao abrir o app
+  useEffect(() => {
+    const signInPublic = async () => {
+      try {
+        if (!auth.currentUser) {
+          await signInAnonymously(auth);
+        }
+      } catch (error: any) {
+        console.error("Erro na autenticação anônima:", error);
+        if (error.code === 'auth/api-key-not-valid') {
+          setAuthError("Erro de Configuração: API Key inválida. Verifique o console do Firebase.");
+        } else if (error.code === 'auth/operation-not-allowed') {
+          setAuthError("Erro: Autenticação Anônima não está ativada no Firebase.");
+        } else {
+          setAuthError(`Erro de conexão: ${error.message}`);
+        }
+      }
+    };
+    signInPublic();
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -26,6 +49,11 @@ const Questionnaire: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (authError) {
+      alert("Não é possível enviar devido a um erro de conexão/configuração.");
+      return;
+    }
     
     if (!formData.nomeGuerra || !formData.bateria || !formData.whatsapp || !formData.areaInteresse) {
       alert("Por favor, preencha todos os campos.");
@@ -42,13 +70,18 @@ const Questionnaire: React.FC = () => {
 
     try {
       if (!db) throw new Error("Banco de dados não inicializado.");
+      
+      // Verifica auth antes de enviar
+      if (!auth.currentUser) {
+         // Tenta logar novamente se caiu
+         await signInAnonymously(auth);
+      }
 
       await addDoc(collection(db, "respostas"), {
         ...formData,
         createdAt: serverTimestamp()
       });
       
-      // MUDANÇA AQUI: Redireciona para a tela de agradecimento
       navigate('/obrigado');
     } catch (error: any) {
       console.error("Erro detalhado ao salvar:", error);
@@ -56,9 +89,11 @@ const Questionnaire: React.FC = () => {
       let errorMessage = "Erro ao enviar. Tente novamente.";
       
       if (error.code === 'permission-denied') {
-        errorMessage = "Erro de Permissão: O banco de dados bloqueou a gravação.";
+        errorMessage = "Erro de Permissão: O banco de dados bloqueou a gravação. Verifique as Regras de Segurança.";
       } else if (error.code === 'unavailable') {
         errorMessage = "Erro de Conexão: Verifique sua internet.";
+      } else if (error.message) {
+        errorMessage = `Erro: ${error.message}`;
       }
 
       alert(errorMessage);
@@ -75,6 +110,18 @@ const Questionnaire: React.FC = () => {
           <p className="text-coffee-100 text-sm">Mapeamento de Oportunidades</p>
         </div>
 
+        {authError && (
+          <div className="bg-red-50 border-l-4 border-red-500 p-4 mx-6 mt-6">
+            <div className="flex items-start">
+              <AlertCircle className="text-red-500 w-5 h-5 mr-2 mt-0.5" />
+              <div>
+                <p className="text-sm text-red-700 font-bold">Falha na Inicialização</p>
+                <p className="text-sm text-red-600">{authError}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           
           {/* Nome de Guerra */}
@@ -90,6 +137,7 @@ const Questionnaire: React.FC = () => {
               placeholder="Ex: Sd Silva"
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-coffee-500 focus:border-coffee-500 outline-none transition-all"
               required
+              disabled={!!authError}
             />
           </div>
 
@@ -106,6 +154,7 @@ const Questionnaire: React.FC = () => {
               placeholder="Ex: 1ª Bia / 2º GAAAe"
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-coffee-500 focus:border-coffee-500 outline-none transition-all"
               required
+              disabled={!!authError}
             />
           </div>
 
@@ -122,6 +171,7 @@ const Questionnaire: React.FC = () => {
               placeholder="(11) 99999-9999"
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-coffee-500 focus:border-coffee-500 outline-none transition-all"
               required
+              disabled={!!authError}
             />
           </div>
 
@@ -138,7 +188,7 @@ const Questionnaire: React.FC = () => {
                     formData.areaInteresse === interest 
                       ? 'border-coffee-600 bg-coffee-50 ring-1 ring-coffee-600' 
                       : 'border-gray-200 hover:border-coffee-300'
-                  }`}
+                  } ${!!authError ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   <input
                     type="radio"
@@ -147,6 +197,7 @@ const Questionnaire: React.FC = () => {
                     checked={formData.areaInteresse === interest}
                     onChange={() => handleInterestChange(interest)}
                     className="sr-only"
+                    disabled={!!authError}
                   />
                   <div className={`w-5 h-5 rounded-full border mr-3 flex items-center justify-center ${
                     formData.areaInteresse === interest ? 'border-coffee-600' : 'border-gray-300'
@@ -163,7 +214,7 @@ const Questionnaire: React.FC = () => {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !!authError}
             className="w-full bg-coffee-600 hover:bg-coffee-900 text-white font-bold py-4 rounded-xl shadow-lg transition-all transform active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
           >
             {loading ? (
@@ -177,13 +228,13 @@ const Questionnaire: React.FC = () => {
         </form>
       </div>
 
-      {/* Botão Admin */}
+      {/* Botão Ver Resultados */}
       <button
         onClick={() => navigate('/admin')}
-        className="fixed bottom-4 right-4 bg-gray-200 hover:bg-gray-300 text-gray-600 p-3 rounded-full shadow-md transition-all hover:bg-gray-100"
-        title="Área Administrativa"
+        className="fixed bottom-4 right-4 bg-gray-200 hover:bg-gray-300 text-gray-600 p-3 rounded-full shadow-md transition-all hover:bg-gray-100 flex items-center gap-2 pr-4 font-medium"
+        title="Ver Resultados"
       >
-        <LockKeyhole size={20} />
+        <PieChart size={18} /> Ver Resultados
       </button>
     </div>
   );

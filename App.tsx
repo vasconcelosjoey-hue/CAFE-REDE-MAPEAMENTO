@@ -2,7 +2,6 @@ import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Questionnaire from './components/Questionnaire';
 import PublicDashboard from './components/PublicDashboard';
-import LoginAdmin from './components/LoginAdmin';
 import AdminDashboard from './components/AdminDashboard';
 import ThankYou from './components/ThankYou';
 
@@ -15,15 +14,19 @@ const App: React.FC = () => {
         <Route path="/obrigado" element={<ThankYou />} />
         
         {/* 
-           Mantivemos o /resultado acessível caso você queira 
-           abrir em uma TV separada no evento, mas o usuário 
-           do celular não será mais redirecionado para cá.
+           Rota pública para TV/Telão (Visual focado em percentuais)
         */}
         <Route path="/resultado" element={<PublicDashboard />} />
         
-        {/* Admin Routes */}
-        <Route path="/admin" element={<LoginAdmin />} />
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        {/* 
+           Rota de Dashboard Geral (Antigo Admin)
+           Agora acessível publicamente, mostrando estatísticas detalhadas 
+           mas sem dados pessoais.
+        */}
+        <Route path="/admin" element={<AdminDashboard />} />
+        
+        {/* Redireciona a rota antiga de dashboard para o novo padrão */}
+        <Route path="/admin/dashboard" element={<Navigate to="/admin" replace />} />
         
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
