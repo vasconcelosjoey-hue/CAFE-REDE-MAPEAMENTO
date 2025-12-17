@@ -2,18 +2,14 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
-// ------------------------------------------------------------------
-// CONFIGURAÇÃO DO FIREBASE
-// Cole aqui as chaves do seu projeto Firebase.
-// Você encontra estes dados no Console do Firebase > Configurações do Projeto > Geral.
-// ------------------------------------------------------------------
+// Configuração extraída da sua imagem (Print 2)
 const firebaseConfig = {
-  apiKey: "COLE_SUA_API_KEY_AQUI",
-  authDomain: "seu-projeto.firebaseapp.com",
-  projectId: "seu-projeto-id",
-  storageBucket: "seu-projeto.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef123456"
+  apiKey: "AIzaSyCvlQcZUQ0sHN6Zuimj8TfU03FjoZcGYY8",
+  authDomain: "cafe-rede-mapeamento.firebaseapp.com",
+  projectId: "cafe-rede-mapeamento",
+  storageBucket: "cafe-rede-mapeamento.firebasestorage.app",
+  messagingSenderId: "778416245724",
+  appId: "1:778416245724:web:0e2f632a7a07ae0e3add19"
 };
 
 // Inicializa o Firebase
